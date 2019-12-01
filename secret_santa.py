@@ -107,7 +107,7 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "shc", ["send", "help"])
+            opts, args = getopt.getopt(argv[1:], "shrc", ["send", "help", "reveal"])
         except getopt.error as msg:
             raise Usage(msg)
 
@@ -118,7 +118,9 @@ def main(argv=None):
                 send = True
             if option in ("-h", "--help"):
                 raise Usage(help_message)
-
+            if option in ("-r", "--reveal"):
+                revealPairs = True
+                
         config = parse_yaml()
         for key in CONFIG_REQRD:
             if key not in config.keys():
@@ -167,16 +169,13 @@ def main(argv=None):
 Test pairings:
                 
 {}
-
-NOTE: The RNG seed value was: {}
-Write this number down somewhere, if you ever want to regenerate this exact draw (for re-sending pairs, etc).
                 
 To send out emails with new pairings,
 call with the --send argument:
 
     $ python secret_santa.py --send
             
-            """.format("\n".join([str(p) for p in pairs]),config["RNG_SEED"])
+            """.format("\n".join([str(p) for p in pairs]))
             )
 
         if send:
@@ -216,6 +215,18 @@ call with the --send argument:
                 print("Emailed {} <{}>".format(pair.giver.name, to))
         if send:
             server.quit()
+
+        print("""\nNOTE: The RNG seed value was: {}
+Write this number down somewhere, if you ever want to regenerate this exact draw (for re-sending pairings, etc).
+""".format(config["RNG_SEED"]))
+            
+        if send and revealPairs:
+            print("You chosen to reveal the pairings, are you sure?")
+            selection = input("Enter 'Y' to reveal, anything else to skip: ")
+            if str(selection[0]).upper() == "Y":
+                print("\n".join([str(p) for p in pairs]))
+            else:
+                print("Reveal aborted, game integrity preserved.")
 
     except Usage as err:
         print(sys.argv[0].split("/")[-1] + ": " + str(err.msg))
