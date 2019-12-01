@@ -36,6 +36,11 @@ CONFIG_REQRD = (
     "MESSAGE",
 )
 
+CONFIG_OPTIONAL = {
+    "SMTP_SECURITY" : "SSL",
+    "RNG_SEED" : random.randrange(sys.maxsize)
+}
+
 HEADER = """Date: {date}
 Content-Type: text/plain; charset="utf-8"
 From: {frm}
@@ -118,15 +123,22 @@ def main(argv=None):
         for key in CONFIG_REQRD:
             if key not in config.keys():
                 raise Exception(
-                    "Required parameter %s not in yaml config file!" % (key,)
+                    "Required parameter {} not in yaml config file!".format(key)
                 )
 
-        #Setup the RNG with a seed (for now use the current year
-        #@TODO - change this later for input at runtime, or define in config file
-        zone = pytz.timezone(config["TIMEZONE"])
-        now = zone.localize(datetime.datetime.now())
-        random.seed(int(now.strftime('%Y')))                
+        for key, val in CONFIG_OPTIONAL.items():
+            if key not in config.keys():
+                config.update({key:val})
+                print("Optional parameter {} not in yaml config file, using default of {}".format(key,str(val)))
                 
+        #Setup the RNG with a seed value for repeatable draws (if desired)
+        if str(config["RNG_SEED"]).upper() == "YEAR":
+            zone = pytz.timezone(config["TIMEZONE"])
+            now = zone.localize(datetime.datetime.now())            
+            config["RNG_SEED"] = int(now.strftime('%Y'))
+        
+        random.seed(int(config["RNG_SEED"]))
+            
         participants = config["PARTICIPANTS"]
         dont_pair = config["DONT_PAIR"]
         if len(participants) < 2:
@@ -154,25 +166,28 @@ def main(argv=None):
                 """
 Test pairings:
                 
-%s
+{}
+
+NOTE: The RNG seed value was: {}
+Write this number down somewhere, if you ever want to regenerate this exact draw (for re-sending pairs, etc).
                 
 To send out emails with new pairings,
 call with the --send argument:
 
     $ python secret_santa.py --send
             
-            """
-                % ("\n".join([str(p) for p in pairs]))
+            """.format("\n".join([str(p) for p in pairs]),config["RNG_SEED"])
             )
 
         if send:
-            #server = smtplib.SMTP_SSL(config["SMTP_SERVER"], config["SMTP_PORT"])
-            
-            server = smtplib.SMTP(config["SMTP_SERVER"], config["SMTP_PORT"])
-            server.ehlo()
-            server.starttls()
-            
-            server.login(config["USERNAME"], config["PASSWORD"])
+            if str(config["SMTP_SECURITY"]).upper() == "TLS":
+                server = smtplib.SMTP(config["SMTP_SERVER"], config["SMTP_PORT"])
+                server.ehlo()
+                server.starttls()
+            else:
+                server = smtplib.SMTP_SSL(config["SMTP_SERVER"], config["SMTP_PORT"])
+                
+            server.login(config["SMTP_USERNAME"], config["SMTP_PASSWORD"])
         for pair in pairs:
             zone = pytz.timezone(config["TIMEZONE"])
             now = zone.localize(datetime.datetime.now())

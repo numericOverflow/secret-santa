@@ -2,10 +2,17 @@
 # gmail
 SMTP_SERVER: smtp.gmail.com
 SMTP_PORT: 587
-USERNAME: you@gmail.com
-PASSWORD: "you're-password"
+SMTP_SECURITY: "SSL"    #pick either "SSL" or "TLS" depending on your email provider
+SMTP_USERNAME: you@gmail.com
+SMTP_PASSWORD: "you're-password"
 
 TIMEZONE: 'US/Pacific'
+
+# Optionally you can define a seed value for the Random Number Generator for repeatable draws
+# Note, that if you specify an RNG_SEED here, every time you re-run the script 
+# with that same seed value, the results will be the EXACT same!
+#RNG_SEED: 123456
+#RNG_SEED: "YEAR"  #-->This will automatically just use the current year as seed value
 
 PARTICIPANTS:
   - Chad <chad@somewhere.net>
@@ -13,20 +20,19 @@ PARTICIPANTS:
   - Bill <Bill@somedomain.net>
   - Sharon <Sharon@hi.org>
 
-
 # Warning -- if you mess this up you could get an infinite loop
-DONT-PAIR:
+DONT_PAIR:
   - Chad, Jen    # Chad and Jen are married
   - Chad, Bill   # Chad and Bill are best friends
   - Bill, Sharon
 
 # From address should be the organizer in case participants have any questions
-FROM: You <you@gmail.net>
+FROM: "You <you@gmail.net>"
 
 # Both SUBJECT and MESSAGE can include variable substitution for the 
 # "santa" and "santee"
-SUBJECT: Your secret santa recipient is {santee}
-MESSAGE: 
+SUBJECT: "{santa} your secret santa pick is {santee}"
+MESSAGE: |
   Dear {santa},
   
   This year you are {santee}'s Secret Santa!. Ho Ho Ho!
