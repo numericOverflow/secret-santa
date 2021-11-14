@@ -70,7 +70,7 @@ class Pair:
 
 
 def parse_yaml(yaml_path=CONFIG_PATH):
-    return yaml.load(open(yaml_path))
+    return yaml.load(open(yaml_path), Loader=yaml.FullLoader)
 
 
 def choose_receiver(giver, receivers):
@@ -113,6 +113,7 @@ def main(argv=None):
 
         # option processing
         send = False
+        revealPairs = False
         for option, value in opts:
             if option in ("-s", "--send"):
                 send = True
