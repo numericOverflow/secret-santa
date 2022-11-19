@@ -21,6 +21,15 @@ You'll also need to specify your mail server settings. An example is provided
 for routing mail through gmail.
 
 For more information, see README.
+
+-s,--send :: Send the emails with optionally specified RNG_SEED in config.yaml
+
+-h,--help :: Show this message on usage
+
+-r,--reveal :: Reveal all pairings with optionally specified RNG_SEED in config.yaml
+
+-g,--getassignment :: Get assignments for one or more individual people.
+
 """
 
 CONFIG_REQRD = (
@@ -107,13 +116,14 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "shrc", ["send", "help", "reveal"])
+            opts, args = getopt.getopt(argv[1:], "shrgc", ["send", "help", "reveal","getassignment"])
         except getopt.error as msg:
             raise Usage(msg)
 
         # option processing
         send = False
         revealPairs = False
+        getAssignment = False
         for option, value in opts:
             if option in ("-s", "--send"):
                 send = True
@@ -121,6 +131,8 @@ def main(argv=None):
                 raise Usage(help_message)
             if option in ("-r", "--reveal"):
                 revealPairs = True
+            if option in ("-g", "--getassignment"):
+                getAssignment = True
                 
         config = parse_yaml()
         for key in CONFIG_REQRD:
@@ -164,7 +176,7 @@ def main(argv=None):
 
         receivers = givers[:]
         pairs = create_pairs(givers, receivers)
-        if not send:
+        if not send and not getAssignment:
             print(
                 """
 Test pairings:
@@ -178,6 +190,55 @@ call with the --send argument:
             
             """.format("\n".join([str(p) for p in pairs]))
             )
+        if getAssignment:
+            print('*'*25)
+            print('Get Assignment Mode')
+            print('*'*25)
+            
+            #print("\n".join([str(p.giver) for p in pairs]))
+            i = 0
+            tempPairArray = []
+            for p in pairs:
+                print("{}){}".format(i,p.giver.name))
+                tempPairArray.append(p)
+                i+=1
+            
+            print("*"*25)
+            giverNumber = int(input('Which person do you want to get assignment for?\r\nEnter number here: '))
+            print('You entered : {} - {}'.format(giverNumber,tempPairArray[giverNumber].giver.name))
+
+            selectedPair = tempPairArray[giverNumber]
+            print("*"*25)
+            print('Do you want to (r)esend assignment or (d)isplay assignment for {}" '.format(selectedPair.giver.name))
+            print("Enter 'r' to resend")
+            print("Enter 'd' to display")
+            action = str(input('Desired Action: ')).upper()
+            
+            if action == "D":
+                print("*"*25)
+                print("{santa} has been assigned {santee} to buy a gift for".format(
+                    santa=selectedPair.giver.name, santee=selectedPair.receiver.name)
+                )
+                print("*"*25)
+                sys.exit(0)
+            elif action == "R":
+                confirmation = "N"
+                print("*"*25)
+                print("Enter 'y' for yes")
+                print("Enter 'n' for no")
+                confirmation = str(input('Are you sure?: ')).upper()
+                if confirmation == 'Y':
+                    send = True
+                    print("Resending paring for {}".format(selectedPair.giver.name))
+                    pairs = []
+                    pairs.append(selectedPair)
+                    #print("\n".join([str(p) for p in pairs]))
+                else:
+                    print("OK, exiting script.  No emails resent")
+                    sys.exit(0)                
+            else:
+                print("Invalid choice. Rerun script and try again")
+                sys.exit(1)
 
         if send:
             if str(config["SMTP_SECURITY"]).upper() == "TLS":
@@ -195,7 +256,7 @@ call with the --send argument:
             frm = config["FROM"]
             to = pair.giver.email
             subject = config["SUBJECT"].format(
-                santa=pair.giver.name, santee=pair.receiver.name
+                santa=pair.giver.name, santee=pair.receiver.name, year=int(now.strftime('%Y'))
             )
             msgbody=re.sub(r'(?<!\r)\n',
                        r'\r\n',
